@@ -1,0 +1,50 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'site/style.css' %}" />
+
+<body bgcolor="#708090">
+  <h2 align = "center"> IMDB Top 250 </h2>
+
+  <table border="1" width="100%" sbgcolor = "#ffdab9" style="font-size: 24px">
+
+    <tr>
+      <th width="18%">Title</th>
+      <th width="18%">Poster</th>
+      <th>Meta</th>
+    </tr>
+
+    {% for m in movies %}
+      <tr>
+        <th>{{ m.Title}}</th>
+        <th> <img src={{m.Poster}}/ style="width:200px;height:250px;border-radius: 10px;padding: 5px;" > </th>
+        <th>
+          <table border="1" style="background: #9E9E9E;color: #F5F5F5;">
+            <!-- <th>{{ m.Awards}}</th> -->
+            <tr bgcolor="#808080">
+              <th> Rank </th>
+              <th> Genre </th>
+              <th> Awards </th>
+              <th> Year  </th>
+              <th> Director  </th>
+              <th> IMDB Rating </th>
+            </tr>
+
+            <tr>
+              <th> {{m.Rank}} </th>
+              <th> {{m.Genre}} </th>
+              <th> {{m.Awards}} </th>
+              <th> {{m.Year}} </th>
+              <th> {{m.Director}} </th>
+              <th> {{m.imdbRating}} </th>
+            </tr>
+
+            <tr>
+              <th colspan="6" style="padding:50px"> {{m.Plot}} </th>
+	    </tr>
+
+          </table>
+        </th>
+      </tr>
+    {% endfor %}
+
+  </table>
+</body>

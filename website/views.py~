@@ -1,0 +1,128 @@
+import json
+import urllib2
+import pandas as pd
+
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.urls import reverse
+from django.views import generic
+from django.utils import timezone
+from .models import Question
+from .models import Choice
+from .models import Hits
+from .models import TopMovies
+from imdbpie import Imdb
+from nltk.corpus import stopwords
+import giphypop
+from numpy.random import RandomState
+
+class IndexView(generic.ListView):
+    template_name = 'site/index.html'
+    context_object_name = 'latest_question_list'
+
+    def get_queryset(self):
+        """Return the last five published questions."""
+        return Question.objects.filter(
+                pub_date__lte=timezone.now()
+        ).order_by('-pub_date')[:5]
+
+class DetailView(generic.DetailView):
+    model = Question
+    template_name = 'site/detail.html'
+
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = 'site/results.html'
+
+def vote(request, question_id):
+    question = get_object_or_404(Question, pk=question_id)
+    try:
+        selected_choice = question.choice_set.get(pk=request.POST['choice'])
+    except (KeyError, Choice.DoesNotExist):
+        # Redisplay the question voting form.
+        return render(request, 'site/detail.html', {
+            'question': question,
+            'error_message': "You didn't select a choice.",
+        })
+    else:
+        selected_choice.votes += 1
+        selected_choice.save()
+        # Always return an HttpResponseRedirect after successfully dealing
+        # with POST data. This prevents data from being posted twice if a
+        # user hits the Back button.
+        return HttpResponseRedirect(reverse('site:results', args=(question.id,)))
+
+
+def giphy(request, giphy_search):
+    giphy_json = []
+    soup = urllib2.urlopen("http://api.giphy.com/v1/gifs/search?q="+ giphy_search + "&api_key=dc6zaTOxFJmzC").read()
+    parsed_json  = json.loads(soup)
+    counter = 0
+    for i in parsed_json['data']:
+#        giphy_json.append(str(i['images']['fixed_width']['url']))
+#        giphy_json.append((counter,str(i['images']['fixed_width']['url'])))
+	giphy_json += [(counter,str(i['images']['fixed_width']['url']))]
+	counter += 1
+
+    # if not found, create a new one with hits being 1
+    hit, created = Hits.objects.get_or_create(name=giphy_search, defaults={"name": giphy_search, "hits":1})
+    if not created:
+        hit.hits += 1
+        hit.save()
+    return render(request, 'site/giphy.html', {'giphy': giphy_json})
+
+def tally(request):
+    return render(request, 'site/tally.html', {'hits': Hits.objects.all()})
+
+def grades(request):
+    import json
+    import gspread
+    from oauth2client.client import SignedJwtAssertionCredentials
+
+    json_key = json.load(open('Fei-Sandbox-4dda5e00c861.json'))
+    scope = ['https://spreadsheets.google.com/feeds']
+
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], json_key['private_key'].encode(), scope)
+    gc = gspread.authorize(credentials)
+    # wks = gc.open_by_url("https://docs.google.com/spreadsheets/d/1prfIEcE6mf7QbMyi-O9kgXyuQLYKlezqmGF2NTNNn9s/edit#gid=0")
+    wks = gc.open("DSI Labs")
+    arr = []
+    worksheet_list = wks.worksheets()
+    for x in worksheet_list:
+        arr += [x.get_all_values()]
+
+    return render(request, 'site/grades.html', {'grades': arr})
+
+def tableau(request):
+   return render(request, 'site/tableau.html')
+
+
+def imdb(request):
+    # Populate the database when it is visited for the first time
+    if len(TopMovies.objects.all())<1:
+        df = pd.read_csv('imdb.csv', sep='\t', encoding='utf-8')
+        movie_instances = []
+        for index, movie in df.iterrows():
+            movie_instances += [
+                TopMovies(
+                    Title = movie['Title'],
+                    Rank = movie['Rank'] + 1,
+                    Released = movie['Released'],
+                    Poster = movie['Poster'],
+                    url = movie['url'],
+                    Year = movie['Year'],
+                    Genre = movie['Genre'],
+                    Awards = movie['Awards'],
+                    imdbRating = movie['imdbRating'],
+                    gross_revenue = movie['gross'],
+                    Actors = movie['Actors'],
+                    Director = movie['Director'],
+                    Plot = movie['Plot']
+                )
+            ]
+        TopMovies.objects.bulk_create(movie_instances)
+    return render(request, 'site/imdb.html', {'movies': TopMovies.objects.all()})
+
+
+
+

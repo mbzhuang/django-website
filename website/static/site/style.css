@@ -1,0 +1,18 @@
+.center {
+    margin: 5em auto;
+    display: block;
+}
+
+.shrink {
+    width: 50%;
+}
+
+.giphy {
+    height: 10em;
+    width: 15em;
+    margin: 1em;
+}
+
+li a {
+    color: green;
+}
