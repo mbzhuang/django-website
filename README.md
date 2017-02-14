@@ -15,6 +15,7 @@ In this project I pulled all my data engineering skills together by creating a w
 3. Configured a Heroku server and deployed my Django applications.
 
 
-websites:
+### websites:
 Giphy: https://serene-oasis-18729.herokuapp.com/site/giphy/KEYWORD/ 
+
 IMDB movies: https://serene-oasis-18729.herokuapp.com/site/imdb/top/
